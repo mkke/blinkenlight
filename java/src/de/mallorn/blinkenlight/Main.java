@@ -56,7 +56,7 @@ public class Main {
 						try {
 							if (!pi.isConnected() || timeWarp) {
 								pi.resendLastState();
-							} else if (now - pi.getLastAccess() > 60000L) {
+							} else if (now - pi.getLastAccess() > 20000L) {
 								pi.executeCommand("I");
 							}
 						} catch (IOException e) {
@@ -72,8 +72,9 @@ public class Main {
 				WindowsPerformance perf = new WindowsPerformance();
 				perf.addListener(new WindowsPerformance.Listener() {
 					
-					int lastColor = -1;
-					int lastSpeed = -1;
+					int lastColor = Integer.MIN_VALUE;
+					int lastSpeed = Integer.MIN_VALUE;
+					int lastAmplitude = Integer.MIN_VALUE;
 					
 					@Override
 					public void onCounterChanged(Map<String, String> values) {
@@ -91,21 +92,32 @@ public class Main {
 								}
 							}
 						}
+
 						int cpuFreqAvg = cpuFreqSum / cpuFreqCount;
+						int normalizedCpuFreq = (cpuFreqAvg - MIN_CPU_FREQ) * 255 / (MAX_CPU_FREQ - MIN_CPU_FREQ);
 						
-						int color = (int) Math.min(Math.max(0, cpuTime * 255 / 100), 255);
-						int speed = MIN_SPEED + ((cpuFreqAvg - MIN_CPU_FREQ) * (MAX_SPEED - MIN_SPEED) / (MAX_CPU_FREQ - MIN_CPU_FREQ));
+						// max.freq -> color, speed
+						// cpu time -> amplitude
+						int color = normalizedCpuFreq;
+						int speed = MIN_SPEED + normalizedCpuFreq * (MAX_SPEED - MIN_SPEED) / 255;
+						int amplitude = -(int) Math.min(Math.max(0, cpuTime * 255 / 100), 255);
+						
 //						System.out.println("cpu time % = " + cpuTime + ", freq = " + cpuFreqAvg);
 						
 						try {
-							if (lastColor < 0 || Math.abs(lastColor - color) > 5) {
+							if (lastColor == Integer.MIN_VALUE || Math.abs(lastColor - color) > 5) {
 								Ports.getPortInfo(port).executeCommand("C" + color);
 								lastColor = color;
 							}
 							
-							if (lastSpeed < 0 || Math.abs(lastSpeed - speed) > 3) {
+							if (lastSpeed == Integer.MIN_VALUE || Math.abs(lastSpeed - speed) > 3) {
 								Ports.getPortInfo(port).executeCommand("S" + speed);
 								lastSpeed = speed;
+							}
+
+							if (lastAmplitude == Integer.MIN_VALUE || Math.abs(lastAmplitude - amplitude) > 8) {
+								Ports.getPortInfo(port).executeCommand("A" + amplitude);
+								lastAmplitude = amplitude;
 							}
 						} catch (IOException e) {}
 					}
@@ -119,8 +131,8 @@ public class Main {
 		}
 	}
 
-	private static final int MIN_SPEED = 2;
-	private static final int MAX_SPEED = 80;
+	private static final int MIN_SPEED = 5;
+	private static final int MAX_SPEED = 25;
 	
 	public static final int MIN_CPU_FREQ = 1200;
 	public static final int MAX_CPU_FREQ = 4400;

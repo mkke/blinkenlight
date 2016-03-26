@@ -23,6 +23,19 @@ void processCommand(char* line) {
   case 'V':
     Serial.println("V Blinkenlight 1.0");
     break;
+  case 'A': {
+    if (line[1] != '?') {
+      int newAmplitude;
+      int count = sscanf((const char*)&line[1], "%d", &newAmplitude);
+      if (count >= 1 && newAmplitude >= MIN_AMPLITUDE && newAmplitude <= MAX_AMPLITUDE) {
+        setAmplitude(newAmplitude);
+      }
+    }
+    char amplitudeinfo_s[60] = "";
+    sprintf(amplitudeinfo_s, "A%d", amplitude);
+    Serial.println(amplitudeinfo_s);
+    }
+    break;
   case 'S': {
     if (line[1] != '?') {
       int newSpeed;

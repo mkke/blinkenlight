@@ -45,29 +45,37 @@ public class PortInfo {
 				
 				serialPort.writeBytes((command + "\n").getBytes("ISO-8859-1"));
 				
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				
-				long timeout = System.currentTimeMillis() + 1000;
-				while (true) {
-					byte[] buffer = serialPort.readBytes();
-					if (buffer != null) {
-						baos.write(buffer);
-						if (buffer[buffer.length - 1] == '\n') {
-							touchLastAccess();
-							return baos.toString("ISO-8859-1");
-						}
-					} else if (timeout > System.currentTimeMillis()) {
-						Thread.sleep(50);
-					} else {
-						throw new InterruptedException("Serial response timeout");
-					}
-				}
+				return receiveLine(1000);
 			} catch (SerialPortException|InterruptedException e) {
 				closePort();
 				throw new IOException(e);
 			}
 		}		
+	}
+	
+	private String receiveLine(long timeout) throws InterruptedException, SerialPortException {
+		long timeoutTime = System.currentTimeMillis() + timeout;
 		
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		
+		while (true) {
+			byte[] buffer = serialPort.readBytes();
+			if (buffer != null) {
+				try {
+					baos.write(buffer);
+					if (buffer[buffer.length - 1] == '\n') {
+						touchLastAccess();
+						return baos.toString("ISO-8859-1");
+					}
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			} else if (timeoutTime > System.currentTimeMillis()) {
+				Thread.sleep(50);
+			} else {
+				throw new InterruptedException("Serial response timeout");
+			}
+		}
 	}
 	
 	public synchronized String executeCommand(String command) throws IOException {
@@ -105,7 +113,7 @@ public class PortInfo {
 		    serialPort.setParams(SerialPort.BAUDRATE_57600, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 		    // wait for Arduino to finish initialization
 		    try {
-				Thread.sleep(2000L);
+				receiveLine(3000);
 			} catch (InterruptedException e) {}
 		    connected = true;
 		} catch (SerialPortException e) {

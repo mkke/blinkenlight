@@ -147,9 +147,26 @@ void fillnoise8() {
 void mapNoiseToLEDsUsingPalette()
 {
   static uint8_t ihue=0;
+
+  int enabledLedCount = constrain(kMatrixWidth * abs(amplitude) / 255, 0, kMatrixWidth); 
+  int minI;
+  int maxI;
+
+  if (amplitude >= 0) {
+    minI = 0;
+    maxI = enabledLedCount - 1;
+  } else {
+    minI = kMatrixWidth - enabledLedCount;
+    maxI = kMatrixWidth - 1;
+  }
   
   for(int i = 0; i < kMatrixWidth; i++) {
     for(int j = 0; j < kMatrixHeight; j++) {
+      if (i < minI || i > maxI) {
+        leds[XY(i,j)] = CRGB(0,0,0);
+        continue;
+      }
+      
       // We use the value at the (i,j) coordinate in the noise
       // array for our brightness, and the flipped value from (j,i)
       // for our pixel's index into the color palette.
@@ -180,7 +197,7 @@ void mapNoiseToLEDsUsingPalette()
 
 int shutdownBrightness = 0;
 void loopLEDs() {
-  if (time - lastCommandTime > 90) {
+  if (time - lastCommandTime > 30) {
     if (shutdownBrightness < 255) {
       shutdownBrightness++;
       FastLED.setBrightness(constrain(brightness - shutdownBrightness, 0, 255));

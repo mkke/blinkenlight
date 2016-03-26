@@ -28,6 +28,9 @@
 #define MIN_COLOR 0
 #define MAX_COLOR 256
 
+#define MIN_AMPLITUDE -255
+#define MAX_AMPLITUDE 255
+
 /* clock values, see tab 'clock' */
 uint64_t time = 0; // <-- this is the time copied in loop() from clockInterruptTime, so code can rely on it not to change within a loop
 uint64_t ticks = 0;
@@ -36,6 +39,7 @@ uint64_t lastCommandTime = 0;
 uint16_t speed = 1;
 int color = 0;
 int brightness = 255;
+int amplitude = 255;
 
 void setBrightness(int newBrightness) {
   if (brightness != newBrightness) {
@@ -51,6 +55,10 @@ void setSpeed(uint16_t newSpeed) {
 
 void setColor(int newColor) {
   color = newColor;
+}
+
+void setAmplitude(int newAmplitude) {
+  amplitude = newAmplitude;
 }
 
 void setup() {
