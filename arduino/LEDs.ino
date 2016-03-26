@@ -203,22 +203,25 @@ void loopLEDs() {
   LEDS.show();
 }
 
-int constrain_hue(int v) {
-  return constrain(v, 0, 255);
+int wrap_hue(int h) {
+  if (h < 0) {
+    return h + 256;
+  } else if (h > 255) {
+    return h - 256;
+  } else {
+    return h;
+  }
 }
 
-// There are several different palettes of colors demonstrated here.
-//
-// FastLED provides several 'preset' palettes: RainbowColors_p, RainbowStripeColors_p,
-// OceanColors_p, CloudColors_p, LavaColors_p, ForestColors_p, and PartyColors_p.
-//
-// Additionally, you can manually define your own color palettes, or you can write
-// code that creates color palettes on the fly.
+#define HUE_SHIFT 20
 
-// 1 = 5 sec per palette
-// 2 = 10 sec per palette
-// etc
-#define HOLD_PALETTES_X_TIMES_AS_LONG 1
+int color_to_hue(int c, int shift) {
+  // we want a color wheel blue -> green -> red, which maps to HSB 165 -> 0 -> 208 in the FastLED rainbow HSB palette
+  // so we have to map 256 values to (165 + 48) = 213, 
+  // and leave additional space for the shift: 213 - 80 = 133; factor = 255 / 133 = 1.91
+  int hue = shift * HUE_SHIFT + 165 - 2 * HUE_SHIFT - color / 1.91;
+  return wrap_hue(hue);
+}
 
 int lastColor = -1;
 void ChangePaletteAndSettings() {
@@ -226,14 +229,11 @@ void ChangePaletteAndSettings() {
     lastColor = color;
   
     if (color >= 0 && color <= 255)  { 
-      // we want a color wheel blue -> green -> red, which maps to HSB 160 -> 0 in the FastLED rainbow HSB palette
-      int center_hsv = 160 - color / 1.6 /* 255 / 160 */;
-
-      // don't wrap around, we don't want 'cold' colors to become 'very hot'
-      int below_hsv = constrain_hue(center_hsv - 16);
-      int above_hsv = constrain_hue(center_hsv + 16);
-      int min_hsv = constrain_hue(center_hsv - 32);
-      int max_hsv = constrain_hue(center_hsv + 32);
+      int center_hsv = color_to_hue(color, 0);
+      int below_hsv = color_to_hue(color, -1);
+      int above_hsv = color_to_hue(color, +1);
+      int min_hsv = color_to_hue(color, -2);
+      int max_hsv = color_to_hue(color, +2);
       
       targetPalette = CRGBPalette16( 
                       CHSV(center_hsv, 255, 224), CHSV(center_hsv, 255, 255), CHSV(above_hsv, 255, 255), CHSV(center_hsv, 255, 255),
